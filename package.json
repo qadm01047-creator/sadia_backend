@@ -43,8 +43,8 @@
         "rimraf": "^5.0.0",
         "glob": "^10.0.0",
         "uuid": "^10.0.0",
-        "npmlog": "^7.0.0",
-        "gauge": "^5.0.0",
-        "are-we-there-yet": "^5.0.0"
+        "npmlog": "^7.0.1",
+        "gauge": "^5.0.2",
+        "are-we-there-yet": "^4.0.2"
     }
 }
