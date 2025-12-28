@@ -150,7 +150,7 @@ export interface SupportMessage {
   id: string;
   email: string;
   message: string;
-  status: 'PENDING' | 'RESOLVED';
+  responded: boolean;
   createdAt: string;
   updatedAt?: string;
 }
