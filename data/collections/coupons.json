@@ -1,0 +1,13 @@
+[
+  {
+    "code": "HELLO",
+    "discount": 20,
+    "discountType": "PERCENTAGE",
+    "oneTime": true,
+    "used": true,
+    "expiresAt": "2025-12-30T00:00",
+    "createdAt": "2025-12-28T08:21:10.406Z",
+    "id": "1766910070410-kfabtsyzv",
+    "usedBy": "1766824244842-q84dk4oer"
+  }
+]

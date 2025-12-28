@@ -1,0 +1,42 @@
+{
+    "name": "sadia-backend",
+    "version": "1.0.0",
+    "description": "Backend API for Sadia.lux e-commerce system on Next.js",
+    "private": true,
+    "scripts": {
+        "dev": "next dev -p 3000",
+        "dev:all": "npx concurrently \"npm run dev\" \"npm run bot:watch\" --names \"BACKEND,BOT\" --prefix-colors \"blue,green\"",
+        "build": "next build",
+        "start": "next start -p 3000",
+        "lint": "next lint",
+        "seed": "tsx scripts/seed.ts",
+        "seed:full": "tsx scripts/seed-full.ts",
+        "migrate": "tsx scripts/migrate-to-separate-files.ts",
+        "clear-db": "tsx scripts/clear-database.ts",
+        "import-excel": "tsx scripts/import-products-from-excel.ts",
+        "clear-and-import": "tsx scripts/clear-and-import.ts",
+        "bot": "tsx bot/telegram-bot.ts",
+        "bot:watch": "tsx watch bot/telegram-bot.ts"
+    },
+    "dependencies": {
+        "next": "^14.2.0",
+        "react": "^18.3.0",
+        "react-dom": "^18.3.0",
+        "bcrypt": "^5.1.1",
+        "jsonwebtoken": "^9.0.2",
+        "cors": "^2.8.5",
+        "node-telegram-bot-api": "^0.64.0",
+        "axios": "^1.6.0"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.2",
+        "@types/jsonwebtoken": "^9.0.6",
+        "@types/node": "^20.14.0",
+        "@types/node-telegram-bot-api": "^0.64.0",
+        "@types/react": "^18.3.0",
+        "@types/react-dom": "^18.3.0",
+        "concurrently": "^8.2.2",
+        "tsx": "^4.16.2",
+        "typescript": "^5.5.0"
+    }
+}

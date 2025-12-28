@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Asal",
+    "text": "Очень качественная одежда рекомендую покупать",
+    "rating": 5,
+    "approved": true,
+    "createdAt": "2025-12-27T15:28:50.623Z",
+    "id": "1766849330623-lodq8va88"
+  },
+  {
+    "name": "Мусина",
+    "text": "Обожаю их одежду покупаю каждый неделю новые коллекции",
+    "rating": 5,
+    "approved": true,
+    "createdAt": "2025-12-27T15:29:29.753Z",
+    "id": "1766849369753-8vm7o3lh1"
+  },
+  {
+    "name": "Муслима",
+    "text": "Подкупаете не пожалейте",
+    "rating": 5,
+    "approved": true,
+    "createdAt": "2025-12-27T15:29:49.408Z",
+    "id": "1766849389408-q6sbq0ldv"
+  },
+  {
+    "name": "koho",
+    "text": "guyffj vgfchfcu",
+    "rating": 1,
+    "approved": true,
+    "createdAt": "2025-12-28T12:39:17.840Z",
+    "id": "1766925557840-rxjefysa4"
+  }
+]
