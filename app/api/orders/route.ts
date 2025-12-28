@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
       
       if (coupon) {
         // Validate coupon
-        if (coupon.oneTime && coupon.used) {
+        if (coupon.oneTimeUse && coupon.used) {
           return errorResponse('Coupon has already been used', 400);
         }
-        if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+        if (coupon.validUntil && new Date(coupon.validUntil) < new Date()) {
           return errorResponse('Coupon has expired', 400);
         }
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         total = Math.max(0, total - discount);
         
         // Mark coupon as used if it's one-time
-        if (coupon.oneTime) {
+        if (coupon.oneTimeUse) {
           update<Coupon>('coupons', coupon.id, {
             used: true,
             usedBy: user.id,

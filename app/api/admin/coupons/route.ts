@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     requireAdmin(req);
 
     const data = await req.json();
-    const { code, discount, discountType, oneTime, expiresAt } = data;
+    const { code, discount, discountType, oneTimeUse, validFrom, validUntil } = data;
 
     if (!code || discount === undefined || !discountType) {
       return errorResponse('code, discount, and discountType are required', 400);
@@ -37,14 +37,16 @@ export async function POST(req: NextRequest) {
       return errorResponse('Coupon with this code already exists', 400);
     }
 
+    const now = new Date().toISOString();
     const coupon = create<Coupon>('coupons', {
       code,
       discount: parseFloat(discount.toString()),
       discountType,
-      oneTime: oneTime || false,
+      validFrom: validFrom || now,
+      validUntil: validUntil || now,
+      oneTimeUse: oneTimeUse || false,
       used: false,
-      expiresAt: expiresAt || undefined,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     });
 
     return successResponse(coupon, 201);

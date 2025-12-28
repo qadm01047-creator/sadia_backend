@@ -5,28 +5,73 @@ export function middleware(request: NextRequest) {
   // Handle CORS for API routes
   if (request.nextUrl.pathname.startsWith('/api')) {
     const origin = request.headers.get('origin');
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5174',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5174',
-    ];
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // Production: only allow https://sadia-lux.vercel.app/
+    // Development: allow localhost origins
+    const allowedOrigins = isDevelopment
+      ? [
+          'http://localhost:5173',
+          'http://localhost:3000',
+          'http://localhost:5174',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:5174',
+        ]
+      : ['https://sadia-lux.vercel.app'];
 
-    // Allow requests from allowed origins or same origin
+    // Handle preflight requests
+    if (request.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 200 });
+      
+      if (origin && allowedOrigins.includes(origin)) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+      } else if (!origin && isDevelopment) {
+        // Allow requests without origin in development (like Postman)
+        response.headers.set('Access-Control-Allow-Origin', '*');
+      } else {
+        // Reject CORS in production for non-allowed origins
+        return new NextResponse(
+          JSON.stringify({ error: 'CORS policy: Origin not allowed' }),
+          { 
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      response.headers.set(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+      );
+      response.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-Requested-With'
+      );
+      response.headers.set('Access-Control-Max-Age', '86400');
+      
+      return response;
+    }
+
+    // Handle actual requests
     const response = NextResponse.next();
     
     if (origin && allowedOrigins.includes(origin)) {
       response.headers.set('Access-Control-Allow-Origin', origin);
-    } else if (!origin) {
-      // Allow requests without origin (like Postman)
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+    } else if (!origin && isDevelopment) {
+      // Allow requests without origin in development (like Postman)
       response.headers.set('Access-Control-Allow-Origin', '*');
-    } else {
-      // For development, allow all origins
-      if (process.env.NODE_ENV === 'development') {
-        response.headers.set('Access-Control-Allow-Origin', origin);
-      }
+    } else if (origin && !allowedOrigins.includes(origin)) {
+      // Reject CORS in production for non-allowed origins
+      return new NextResponse(
+        JSON.stringify({ error: 'CORS policy: Origin not allowed' }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     response.headers.set(
@@ -37,13 +82,7 @@ export function middleware(request: NextRequest) {
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-Requested-With'
     );
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set('Access-Control-Max-Age', '86400');
-
-    // Handle preflight requests
-    if (request.method === 'OPTIONS') {
-      return new NextResponse(null, { status: 200, headers: response.headers });
-    }
 
     return response;
   }
