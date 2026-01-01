@@ -49,5 +49,27 @@
     "phone": "909496694",
     "address": "qizilguncha 2 tor 10 uy",
     "createdAt": "2025-12-30T07:40:42.931Z"
+  },
+  {
+    "id": "1767265539634-3m2zfurvf",
+    "email": "charityhends123@gmail.com",
+    "password": "$2b$10$bYS/jZwfEAv9tZvQVHIN4uw1UIQALasm1Ew4Mx8hLdvGM/co9zwFu",
+    "role": "USER",
+    "firstName": "umarbek",
+    "lastName": "ulugbekov",
+    "phone": "charityhends",
+    "address": "qizilguncha 2 tor 10 uy",
+    "createdAt": "2026-01-01T11:05:39.634Z"
+  },
+  {
+    "id": "1767266133374-if423x6h4",
+    "email": "charityhends323@gmail.com",
+    "password": "$2b$10$tDyGXxmLlbPjAGpMwkr3f.5UR79UcgOC9edmWI2dxqv.oeIT9.qQS",
+    "role": "USER",
+    "firstName": "umarbek",
+    "lastName": "ulugbekov",
+    "phone": "909496694",
+    "address": "qizilguncha 2 tor 10 uy",
+    "createdAt": "2026-01-01T11:15:33.375Z"
   }
 ]
