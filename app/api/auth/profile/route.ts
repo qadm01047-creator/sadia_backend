@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, update } from '@/lib/db';
+import { getByIdAsync, updateAsync } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { User } from '@/types';
@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest) {
     const data = await req.json();
     const { firstName, lastName, phone, address, cardNumber, cardExpiry, cardHolder } = data;
 
-    const existingUser = getById<User>('users', user.id);
+    const existingUser = await getByIdAsync<User>('users', user.id);
     
     if (!existingUser) {
       return errorResponse('User not found', 404);
@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest) {
     if (cardExpiry !== undefined) updateData.cardExpiry = cardExpiry;
     if (cardHolder !== undefined) updateData.cardHolder = cardHolder;
 
-    const updatedUser = update<User>('users', user.id, updateData);
+    const updatedUser = await updateAsync<User>('users', user.id, updateData);
 
     if (!updatedUser) {
       return errorResponse('User not found', 404);

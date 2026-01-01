@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAll, create } from '@/lib/db';
+import { getAllAsync, createAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Category } from '@/types';
@@ -44,7 +44,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
-    const categories = getAll<Category>('categories');
+    const categories = await getAllAsync<Category>('categories');
     return successResponse(categories);
   } catch (error: any) {
     console.error('Get categories error:', error);
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     const categorySlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
-    const category = create<Category>('categories', {
+    const category = await createAsync<Category>('categories', {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
       slug: categorySlug,

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, update, remove, getAll } from '@/lib/db';
+import { getByIdAsync, updateAsync, removeAsync, getAllAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Product, Category } from '@/types';
@@ -61,14 +61,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const product = getById<Product>('products', params.id);
+    const product = await getByIdAsync<Product>('products', params.id);
 
     if (!product) {
       return errorResponse('Product not found', 404);
     }
 
     // Populate category
-    const categories = getAll<Category>('categories');
+    const categories = await getAllAsync<Category>('categories');
     const category = categories.find(cat => cat.id === product.categoryId) || null;
 
     // Populate images
@@ -95,7 +95,7 @@ export async function PUT(
     const data = await req.json();
     const { name, description, price, costPrice, categoryId, slug } = data;
 
-    const existingProduct = getById<Product>('products', params.id);
+    const existingProduct = await getByIdAsync<Product>('products', params.id);
     if (!existingProduct) {
       return errorResponse('Product not found', 404);
     }
@@ -103,7 +103,7 @@ export async function PUT(
     const productSlug = slug || name?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') || existingProduct.slug;
     const profit = costPrice !== undefined ? (price || existingProduct.price) - costPrice : existingProduct.profit;
 
-    const updatedProduct = update<Product>('products', params.id, {
+    const updatedProduct = await updateAsync<Product>('products', params.id, {
       ...data,
       slug: productSlug,
       profit,
@@ -131,7 +131,7 @@ export async function DELETE(
   try {
     requireAdmin(req);
 
-    const deleted = remove('products', params.id);
+    const deleted = await removeAsync('products', params.id);
 
     if (!deleted) {
       return errorResponse('Product not found', 404);

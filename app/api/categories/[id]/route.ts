@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, update, remove } from '@/lib/db';
+import { getByIdAsync, updateAsync, removeAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Category } from '@/types';
@@ -61,7 +61,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const category = getById<Category>('categories', params.id);
+    const category = await getByIdAsync<Category>('categories', params.id);
 
     if (!category) {
       return errorResponse('Category not found', 404);
@@ -83,7 +83,7 @@ export async function PUT(
 
     const data = await req.json();
 
-    const updatedCategory = update<Category>('categories', params.id, {
+    const updatedCategory = await updateAsync<Category>('categories', params.id, {
       ...data,
       updatedAt: new Date().toISOString(),
     });
@@ -109,7 +109,7 @@ export async function DELETE(
   try {
     requireAdmin(req);
 
-    const deleted = remove('categories', params.id);
+    const deleted = await removeAsync('categories', params.id);
 
     if (!deleted) {
       return errorResponse('Category not found', 404);

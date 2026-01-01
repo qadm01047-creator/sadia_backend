@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAll, create, getById, update } from '@/lib/db';
+import { getAllAsync, createAsync, getByIdAsync, updateAsync } from '@/lib/db';
 import { requireAuth, requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Order, OrderItem, Product, Coupon } from '@/types';
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const source = searchParams.get('source');
 
-    let orders = getAll<Order>('orders');
+    let orders = await getAllAsync<Order>('orders');
 
     // Filter by user role
     if (user.role === 'USER') {
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     // Calculate total
     let total = 0;
-    const products = getAll<Product>('products');
+    const products = await getAllAsync<Product>('products');
 
     for (const item of items) {
       const product = products.find(p => p.id === item.productId);
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     let discount = 0;
     let appliedCouponCode = couponCode;
     if (couponCode) {
-      const coupons = getAll<Coupon>('coupons');
+      const coupons = await getAllAsync<Coupon>('coupons');
       const coupon = coupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase());
       
       if (coupon) {
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         
         // Mark coupon as used if it's one-time
         if (coupon.oneTimeUse) {
-          update<Coupon>('coupons', coupon.id, {
+          await updateAsync<Coupon>('coupons', coupon.id, {
             used: true,
             usedBy: user.id,
           });
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create order
-    const order = create<Order>('orders', {
+    const order = await createAsync<Order>('orders', {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       userId: user.role !== 'USER' ? undefined : user.id,
       orderNumber,
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     const orderItems: OrderItem[] = [];
     for (const item of items) {
       const product = products.find(p => p.id === item.productId)!;
-      const orderItem = create<OrderItem>('orderItems', {
+      const orderItem = await createAsync<OrderItem>('orderItems', {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         orderId: order.id,
         productId: item.productId,

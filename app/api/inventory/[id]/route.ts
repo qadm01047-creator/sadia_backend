@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, update, remove, getAll } from '@/lib/db';
+import { getByIdAsync, updateAsync, removeAsync, getAllAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Inventory, Product } from '@/types';
@@ -13,14 +13,14 @@ export async function GET(
   try {
     requireAdmin(req);
 
-    const inventoryItem = getById<Inventory>('inventory', params.id);
+    const inventoryItem = await getByIdAsync<Inventory>('inventory', params.id);
 
     if (!inventoryItem) {
       return errorResponse('Inventory item not found', 404);
     }
 
     // Populate product information
-    const products = getAll<Product>('products');
+    const products = await getAllAsync<Product>('products');
     const product = products.find(p => p.id === inventoryItem.productId) || null;
 
     return successResponse({
@@ -46,14 +46,14 @@ export async function PUT(
     const data = await req.json();
     const { quantity, size } = data;
 
-    const existingItem = getById<Inventory>('inventory', params.id);
+    const existingItem = await getByIdAsync<Inventory>('inventory', params.id);
     if (!existingItem) {
       return errorResponse('Inventory item not found', 404);
     }
 
     // Check if trying to change size and if new size already exists
     if (size && size !== existingItem.size) {
-      const inventory = getAll<Inventory>('inventory');
+      const inventory = await getAllAsync<Inventory>('inventory');
       const duplicateItem = inventory.find(
         item => item.productId === existingItem.productId && 
                 item.size === size && 
@@ -76,7 +76,7 @@ export async function PUT(
       updateData.size = size;
     }
 
-    const updatedItem = update<Inventory>('inventory', params.id, updateData);
+    const updatedItem = await updateAsync<Inventory>('inventory', params.id, updateData);
 
     if (!updatedItem) {
       return errorResponse('Inventory item not found', 404);
@@ -99,7 +99,7 @@ export async function DELETE(
   try {
     requireAdmin(req);
 
-    const deleted = remove('inventory', params.id);
+    const deleted = await removeAsync('inventory', params.id);
 
     if (!deleted) {
       return errorResponse('Inventory item not found', 404);

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { create, findOne } from '@/lib/db';
+import { createAsync, findOneAsync } from '@/lib/db';
 import { hashPassword, generateToken } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { User } from '@/types';
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Password must be at least 6 characters', 400);
     }
 
-    const existingUser = findOne<User>('users', (u) => u.email === email);
+    const existingUser = await findOneAsync<User>('users', (u) => u.email === email);
     
     if (existingUser) {
       return errorResponse('User with this email already exists', 400);
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = create<User>('users', {
+    const user = await createAsync<User>('users', {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       email,
       password: hashedPassword,

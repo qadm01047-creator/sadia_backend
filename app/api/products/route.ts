@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAll, create } from '@/lib/db';
+import { getAllAsync, createAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Product, Category } from '@/types';
@@ -101,8 +101,8 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    let products = getAll<Product>('products');
-    const categories = getAll<Category>('categories');
+    let products = await getAllAsync<Product>('products');
+    const categories = await getAllAsync<Category>('categories');
 
     // Populate category for each product
     products = products.map(product => ({
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     const productSlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     const profit = costPrice ? price - costPrice : undefined;
 
-    const product = create<Product>('products', {
+    const product = await createAsync<Product>('products', {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
       slug: productSlug,

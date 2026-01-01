@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { findOne } from '@/lib/db';
+import { findOneAsync } from '@/lib/db';
 import { comparePassword, generateToken } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { User } from '@/types';
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Email and password are required', 400);
     }
 
-    const user = findOne<User>('users', (u) => u.email === email);
+    const user = await findOneAsync<User>('users', (u) => u.email === email);
     
     if (!user) {
       return errorResponse('Invalid credentials', 401);

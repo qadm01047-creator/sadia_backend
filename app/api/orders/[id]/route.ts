@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, update, getAll } from '@/lib/db';
+import { getByIdAsync, updateAsync, getAllAsync } from '@/lib/db';
 import { requireAuth, requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Order, OrderItem, User, Product } from '@/types';
@@ -50,7 +50,7 @@ export async function GET(
 ) {
   try {
     const user = requireAuth(req);
-    const order = getById<Order>('orders', params.id);
+    const order = await getByIdAsync<Order>('orders', params.id);
 
     if (!order) {
       return errorResponse('Order not found', 404);
@@ -62,7 +62,8 @@ export async function GET(
     }
 
     // Get order items
-    const items = getAll<OrderItem>('orderItems').filter(item => item.orderId === order.id);
+    const allOrderItems = await getAllAsync<OrderItem>('orderItems');
+    const items = allOrderItems.filter(item => item.orderId === order.id);
 
     return successResponse({ order, items });
   } catch (error: any) {
@@ -85,18 +86,19 @@ export async function PUT(
     const { status } = data;
 
     // Get current order to check if status is changing
-    const currentOrder = getById<Order>('orders', params.id);
+    const currentOrder = await getByIdAsync<Order>('orders', params.id);
     if (!currentOrder) {
       return errorResponse('Order not found', 404);
     }
 
-    const updatedOrder = update<Order>('orders', params.id, {
+    const updatedOrder = await updateAsync<Order>('orders', params.id, {
       ...data,
       updatedAt: new Date().toISOString(),
     });
 
     // Get order items
-    const orderItems = getAll<OrderItem>('orderItems').filter(item => item.orderId === params.id);
+    const allOrderItems = await getAllAsync<OrderItem>('orderItems');
+    const orderItems = allOrderItems.filter(item => item.orderId === params.id);
 
     // If status changed to PAID, decrease inventory
     if (status === 'PAID' && currentOrder.status !== 'PAID') {
@@ -113,7 +115,7 @@ export async function PUT(
       // Try to get phone from user
       let phone: string | undefined;
       if (currentOrder.userId) {
-        const user = getById<User>('users', currentOrder.userId);
+        const user = await getByIdAsync<User>('users', currentOrder.userId);
         phone = user?.phone;
       }
 

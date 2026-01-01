@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/middleware/auth';
-import { getById } from '@/lib/db';
+import { getByIdAsync } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { User } from '@/types';
 
@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const authUser = requireAuth(req);
-    const user = getById<User>('users', authUser.id);
+    const user = await getByIdAsync<User>('users', authUser.id);
 
     if (!user) {
       return errorResponse('User not found', 404);

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAll, create } from '@/lib/db';
+import { getAllAsync, createAsync } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Review } from '@/types';
 
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const productId = searchParams.get('productId');
     const approved = searchParams.get('approved');
 
-    let reviews = getAll<Review>('reviews');
+    let reviews = await getAllAsync<Review>('reviews');
 
     if (productId) {
       reviews = reviews.filter(r => r.productId === productId);
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Rating must be between 1 and 5', 400);
     }
 
-    const review = create<Review>('reviews', {
+    const review = await createAsync<Review>('reviews', {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
       text,
