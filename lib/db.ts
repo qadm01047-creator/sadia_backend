@@ -24,7 +24,7 @@ function getCollectionFilePath(collection: string): string {
 }
 
 // Read all items from a collection file (filesystem mode)
-async function readCollectionFS<T>(collection: string): Promise<T[]> {
+function readCollectionFS<T>(collection: string): T[] {
   const filePath = getCollectionFilePath(collection);
   if (!fs.existsSync(filePath)) {
     return [];
@@ -197,7 +197,7 @@ export async function createAsync<T extends { id?: string }>(collection: string,
   
   const existingIndex = items.findIndex((existing: any) => existing.id === item.id);
   if (existingIndex !== -1) {
-    items[existingIndex] = { ...items[existingIndex], ...item, id: item.id };
+    items[existingIndex] = { ...items[existingIndex] as T, ...item, id: item.id } as T;
     await writeCollection(collection, items);
     return items[existingIndex];
   }
@@ -229,7 +229,7 @@ export function create<T extends { id?: string }>(collection: string, item: T): 
   
   const existingIndex = items.findIndex((existing: any) => existing.id === item.id);
   if (existingIndex !== -1) {
-    items[existingIndex] = { ...items[existingIndex], ...item, id: item.id };
+    items[existingIndex] = { ...items[existingIndex] as T, ...item, id: item.id } as T;
     writeCollectionFS(collection, items);
     return items[existingIndex];
   }
@@ -250,7 +250,7 @@ export async function updateAsync<T extends { id: string }>(collection: string, 
     return null;
   }
 
-  items[index] = { ...items[index], ...updates, id };
+  items[index] = { ...items[index] as T, ...updates, id } as T;
   await writeCollection(collection, items);
   return items[index];
 }
@@ -260,14 +260,14 @@ export function update<T extends { id: string }>(collection: string, id: string,
     throw new Error(`update() called synchronously but Blob storage is enabled. Use updateAsync() instead.`);
   }
 
-  const items = readCollectionFS(collection);
+  const items = readCollectionFS<T>(collection);
   const index = items.findIndex((item: any) => item.id === id);
   
   if (index === -1) {
     return null;
   }
 
-  items[index] = { ...items[index], ...updates, id };
+  items[index] = { ...items[index] as T, ...updates, id } as T;
   writeCollectionFS(collection, items);
   return items[index];
 }
