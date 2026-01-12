@@ -21,4 +21,4 @@ export function getTerminalProvider(): TerminalProvider {
   }
 }
 
-export { TerminalProvider } from './interface';
+export type { TerminalProvider } from './interface';

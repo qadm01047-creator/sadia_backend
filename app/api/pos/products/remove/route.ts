@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticate, requireRole } from '@/middleware/auth';
+import { requireRole } from '@/middleware/auth';
 import { getByIdAsync, updateAsync, removeAsync } from '@/lib/db';
 import { Product } from '@/types';
 
@@ -13,21 +13,8 @@ export async function DELETE(
   { params }: { params: { productId: string } }
 ) {
   try {
-    const user = await authenticate(req);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
-    }
-
     // Only ADMIN+ can remove products
-    if (!requireRole(user, ['ADMIN', 'SUPERADMIN'])) {
-      return NextResponse.json(
-        { success: false, error: 'FORBIDDEN' },
-        { status: 403 }
-      );
-    }
+    const user = requireRole(req, ['ADMIN', 'SUPERADMIN']);
 
     const { productId } = params;
     const url = new URL(req.url);
@@ -87,7 +74,19 @@ export async function DELETE(
       success: true,
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { success: false, error: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json(
+        { success: false, error: 'FORBIDDEN' },
+        { status: 403 }
+      );
+    }
     console.error('Product removal error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to remove product' },
@@ -103,20 +102,8 @@ export async function DELETE(
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await authenticate(req);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
-    }
-
-    if (!requireRole(user, ['ADMIN', 'SUPERADMIN'])) {
-      return NextResponse.json(
-        { success: false, error: 'FORBIDDEN' },
-        { status: 403 }
-      );
-    }
+    // Only ADMIN+ can remove products
+    const user = requireRole(req, ['ADMIN', 'SUPERADMIN']);
 
     const body = await req.json();
     const { productIds = [], method = 'deactivate' } = body;
@@ -178,7 +165,19 @@ export async function POST(req: NextRequest) {
       data: results,
       message: `${results.success.length} products ${method}d, ${results.failed.length} failed`,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { success: false, error: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json(
+        { success: false, error: 'FORBIDDEN' },
+        { status: 403 }
+      );
+    }
     console.error('Batch product removal error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to process batch removal' },

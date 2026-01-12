@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
 import { authenticate, requireRole } from '@/middleware/auth';
 import { getByIdAsync, getAllAsync } from '@/lib/db';
+import { Product } from '@/types';
 
 /**
  * GET /api/pos/qrcode/:productId
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get product to verify it exists
-    const product = await getByIdAsync('products', productId as string);
+    const product = await getByIdAsync<Product>('products', productId as string);
     if (!product) {
       return NextResponse.json(
         { success: false, message: 'Product not found' },
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const response = new NextResponse(qrImage);
+    const response = new NextResponse(new Uint8Array(qrImage));
     response.headers.set('Content-Type', 'image/png');
     response.headers.set(
       'Content-Disposition',
@@ -137,13 +138,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let product = null;
+    let product: Product | null = null;
 
     // Try to parse as QR code data
     try {
       const qrData = JSON.parse(barcode);
       if (qrData.type === 'PRODUCT' && qrData.productId) {
-        product = await getByIdAsync('products', qrData.productId);
+        product = await getByIdAsync<Product>('products', qrData.productId);
       }
     } catch {
       // Not JSON, try as product ID or SKU
@@ -151,13 +152,13 @@ export async function POST(req: NextRequest) {
 
     // If not found, try as product ID
     if (!product) {
-      product = await getByIdAsync('products', barcode);
+      product = await getByIdAsync<Product>('products', barcode);
     }
 
     // If still not found, try as SKU
     if (!product) {
-      const products = await getAllAsync('products');
-      product = products?.find((p: any) => p.sku === barcode);
+      const products = await getAllAsync<Product>('products');
+      product = products?.find((p) => p.sku === barcode) || null;
     }
 
     if (!product) {
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if product is available for POS
-    if (product.active_for_pos === false || product.stock <= 0) {
+    if (product.active_for_pos === false || (product.stock !== undefined && product.stock <= 0)) {
       return NextResponse.json(
         { success: false, message: 'Product not available for POS' },
         { status: 409 }
@@ -183,7 +184,7 @@ export async function POST(req: NextRequest) {
         id: product.id,
         name: product.name,
         price,
-        stock: product.stock,
+        stock: product.stock ?? 0,
         sku: product.sku,
         categoryId: product.categoryId,
         offline_price: product.offline_price,
