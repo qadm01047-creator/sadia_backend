@@ -164,8 +164,4 @@ export async function POST(req: NextRequest) {
     return errorResponse(error.message || 'Internal server error', 500);
   }
 }
-    console.error('Process POS payment error:', error);
-    return errorResponse(error.message || 'Internal server error', 500);
-  }
-}
 
