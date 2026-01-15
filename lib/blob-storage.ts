@@ -32,13 +32,22 @@ export async function uploadFileToBlob(
       const cleanFilename = path.basename(filename);
       blobFilename = cleanFilename;
     } else {
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(2, 15);
-      const fileExtension = file instanceof File && file.name
-        ? file.name.substring(file.name.lastIndexOf('.'))
-        : '';
-      blobFilename = `${timestamp}-${randomString}${fileExtension}`;
+      let blobFilename;
+
+     switch (dataType) {
+       case 'user':
+       blobFilename = 'users.json';
+       break;
+     case 'product':
+      blobFilename = 'products.json';
+      break;
+      case 'category':
+      blobFilename = 'categories.json';
+      break;
+      // добавь остальные типы данных по аналогии
+      default:
+    throw new Error('Unknown data type');
+     }
     }
 
     // Convert file to buffer
