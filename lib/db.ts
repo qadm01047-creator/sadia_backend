@@ -101,37 +101,50 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
     const blobName = `db/${collection}.json`;
     const content = JSON.stringify(items, null, 2);
     
-    // Delete existing blobs with the same pathname to prevent duplicates
-    // This is needed for @vercel/blob < 1.0.0 which doesn't support allowOverwrite
-    try {
-      const blobs = await list({ prefix: blobName });
-      const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
-      
-      if (existingBlobs.length > 0) {
-        // Delete all existing blobs with this pathname
-        const urlsToDelete = existingBlobs.map(b => b.url);
-        await del(urlsToDelete);
-        // Clear cache since we're deleting the old blob
-        blobUrlCache.delete(blobName);
-      }
-    } catch (listError) {
-      // If listing fails, try to delete cached URL if available
-      const cachedUrl = blobUrlCache.get(blobName);
-      if (cachedUrl) {
-        await del(cachedUrl);
-        blobUrlCache.delete(blobName);
-      }
-      // Continue with creating new blob even if deletion failed
-    }
-    
-    // Create new blob
-    const { url } = await put(blobName, content, {
+    // Try to use allowOverwrite if available (v1.0.0+), otherwise delete old blobs first
+    const putOptions: any = {
       access: 'public',
       contentType: 'application/json',
-      addRandomSuffix: false, // Keep the same filename
-    });
-    // Cache the URL for faster reads
-    blobUrlCache.set(blobName, url);
+      addRandomSuffix: false,
+    };
+
+    // Check if allowOverwrite is available (v1.0.0+)
+    try {
+      // Try to use allowOverwrite (available in v1.0.0+)
+      putOptions.allowOverwrite = true;
+      const { url } = await put(blobName, content, putOptions);
+      blobUrlCache.set(blobName, url);
+    } catch (error: any) {
+      // If allowOverwrite is not supported (v0.26.0), delete old blobs first
+      if (error.message?.includes('allowOverwrite') || error.message?.includes('overwrite')) {
+        console.log('allowOverwrite not supported, using delete-then-create approach');
+        
+        // Delete existing blobs with the same pathname
+        try {
+          const blobs = await list({ prefix: blobName });
+          const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
+          
+          if (existingBlobs.length > 0) {
+            const urlsToDelete = existingBlobs.map(b => b.url);
+            await del(urlsToDelete);
+            blobUrlCache.delete(blobName);
+          }
+        } catch (listError) {
+          const cachedUrl = blobUrlCache.get(blobName);
+          if (cachedUrl) {
+            await del(cachedUrl);
+            blobUrlCache.delete(blobName);
+          }
+        }
+        
+        // Create new blob without allowOverwrite
+        delete putOptions.allowOverwrite;
+        const { url } = await put(blobName, content, putOptions);
+        blobUrlCache.set(blobName, url);
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     console.error(`Error writing collection ${collection} to Blob:`, error);
     throw error;

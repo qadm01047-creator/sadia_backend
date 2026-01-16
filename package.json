@@ -12,6 +12,7 @@
         "seed": "tsx scripts/seed.ts",
         "add-fake-users": "tsx scripts/add-fake-users.ts",
         "migrate": "tsx scripts/migrate-to-separate-files.ts",
+        "migrate-to-blob": "tsx scripts/migrate-to-blob.ts",
         "clear-db": "tsx scripts/clear-database.ts",
         "import-excel": "tsx scripts/import-products-from-excel.ts",
         "clear-and-import": "tsx scripts/clear-and-import.ts",

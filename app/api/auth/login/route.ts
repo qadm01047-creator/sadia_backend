@@ -60,11 +60,23 @@ export async function POST(req: NextRequest) {
       return errorResponse('Email and password are required', 400);
     }
 
+    // Debug logging
+    console.log('Login attempt for email:', email);
+    
     const user = await findOneAsync<User>('users', (u) => u.email === email);
     
+    // Debug logging
     if (!user) {
+      console.log('User not found for email:', email);
+      // Try to get all users for debugging
+      const { getAllAsync } = await import('@/lib/db');
+      const allUsers = await getAllAsync<User>('users');
+      console.log('Total users in database:', allUsers.length);
+      console.log('User emails:', allUsers.map(u => u.email));
       return errorResponse('Invalid credentials', 401);
     }
+    
+    console.log('User found:', { id: user.id, email: user.email, role: user.role });
 
     const isValidPassword = await comparePassword(password, user.password);
     
