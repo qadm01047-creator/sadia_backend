@@ -104,6 +104,14 @@ export type DatabaseFileType =
   | 'categories'
   | 'coupons'
   | 'orders'
+  | 'orderItems'
+  | 'inventory'
+  | 'reviews'
+  | 'supportMessages'
+  | 'payments'
+  | 'exchanges'
+  | 'newsletterSubscriptions'
+  | 'saleAnalytics'
   | 'settings';
 
 function getDatabaseFilename(type: DatabaseFileType): string {
@@ -114,10 +122,26 @@ function getDatabaseFilename(type: DatabaseFileType): string {
       return 'products.json';
     case 'categories':
       return 'categories.json';
+    case 'newsletterSubscriptions':
+      return 'newsletterSubscriptions.json';
+    case 'inventory':
+      return 'inventory.json';
+    case 'reviews':
+      return 'reviews.json';
+    case 'supportMessages':
+      return 'supportMessages.json';
+    case 'payments':
+      return 'payments.json';
+    case 'exchanges':
+      return 'exchanges.json';
+    case 'saleAnalytics':
+      return 'saleAnalytics.json';
     case 'coupons':
       return 'coupons.json';
     case 'orders':
       return 'orders.json';
+    case 'orderItems':
+      return 'orderItems.json';
     case 'settings':
       return 'settings.json';
     default:
