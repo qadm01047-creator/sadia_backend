@@ -46,8 +46,47 @@ export async function GET(
 
     // Populate inventory
     const inventory = await getAllAsync<Inventory>('inventory');
-    const productInventory = inventory.filter(inv => inv.productId === product.id);
+    console.log(`Total inventory items loaded: ${inventory.length}`);
+    console.log(`Looking for productId: ${product.id} (type: ${typeof product.id})`);
+    
+    // Log all inventory productIds for debugging
+    if (inventory.length > 0) {
+      const productIds = inventory.map(inv => inv.productId);
+      console.log(`All productIds in inventory:`, productIds);
+      console.log(`ProductId types:`, productIds.map(id => typeof id));
+      console.log(`Sample inventory items:`, inventory.slice(0, 5).map(inv => ({
+        id: inv.id,
+        productId: inv.productId,
+        productIdType: typeof inv.productId,
+        size: inv.size,
+        quantity: inv.quantity,
+        matches: inv.productId === product.id,
+        strictEqual: inv.productId === product.id,
+        looseEqual: inv.productId == product.id
+      })));
+    }
+    
+    // Use strict equality check and also log mismatches
+    const productInventory = inventory.filter(inv => {
+      const matches = inv.productId === product.id;
+      if (!matches && inventory.length <= 10) {
+        console.log(`Mismatch: inv.productId="${inv.productId}" (${typeof inv.productId}) !== product.id="${product.id}" (${typeof product.id})`);
+      }
+      return matches;
+    });
     console.log(`Inventory items for product ${product.id}: ${productInventory.length}`);
+    
+    if (productInventory.length > 0) {
+      console.log(`Found inventory items:`, productInventory.map(inv => ({
+        id: inv.id,
+        size: inv.size,
+        quantity: inv.quantity
+      })));
+    } else if (inventory.length > 0) {
+      console.warn(`⚠️ No inventory items found for product ${product.id}, but ${inventory.length} total items exist`);
+      console.warn(`Product ID type: ${typeof product.id}, value: "${product.id}"`);
+      console.warn(`Inventory productIds:`, inventory.map(inv => ({ value: inv.productId, type: typeof inv.productId })));
+    }
 
     // Get images (if stored separately, otherwise use product.images)
     const images = product.images || [];

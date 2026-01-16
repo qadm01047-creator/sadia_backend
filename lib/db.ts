@@ -59,6 +59,7 @@ async function readCollectionBlob<T>(collection: string): Promise<T[]> {
     
     // If not in cache, search for it
     if (!blobUrl) {
+      console.log(`[readCollectionBlob] URL not in cache for ${collection}, searching...`);
       const blobs = await list({ prefix: blobName });
       // Find the most recent blob with exact pathname match
       const matchingBlobs = blobs.blobs
@@ -66,6 +67,7 @@ async function readCollectionBlob<T>(collection: string): Promise<T[]> {
         .sort((a, b) => (b.uploadedAt?.getTime() || 0) - (a.uploadedAt?.getTime() || 0));
       
       if (matchingBlobs.length === 0) {
+        console.log(`[readCollectionBlob] No blobs found for ${collection}`);
         return [];
       }
       
@@ -73,12 +75,16 @@ async function readCollectionBlob<T>(collection: string): Promise<T[]> {
       const matchingBlob = matchingBlobs[0];
       blobUrl = matchingBlob.url;
       blobUrlCache.set(blobName, blobUrl);
+      console.log(`[readCollectionBlob] Found ${matchingBlobs.length} blob(s) for ${collection}, using most recent`);
+    } else {
+      console.log(`[readCollectionBlob] Using cached URL for ${collection}`);
     }
 
     // Fetch the blob content
     const response = await fetch(blobUrl);
     if (!response.ok) {
       if (response.status === 404) {
+        console.log(`[readCollectionBlob] Blob not found (404), clearing cache for ${collection}`);
         blobUrlCache.delete(blobName);
         return [];
       }
@@ -87,9 +93,21 @@ async function readCollectionBlob<T>(collection: string): Promise<T[]> {
 
     const text = await response.text();
     const items = JSON.parse(text);
+    console.log(`[readCollectionBlob] Loaded ${items.length} items from ${collection}`);
+    
+    // Log sample data for inventory collection
+    if (collection === 'inventory' && items.length > 0) {
+      console.log(`[readCollectionBlob] Sample inventory items:`, items.slice(0, 3).map((inv: any) => ({
+        id: inv.id,
+        productId: inv.productId,
+        size: inv.size,
+        quantity: inv.quantity
+      })));
+    }
+    
     return Array.isArray(items) ? items : [];
   } catch (error: any) {
-    console.error(`Error reading collection ${collection} from Blob:`, error);
+    console.error(`[readCollectionBlob] Error reading collection ${collection} from Blob:`, error);
     blobUrlCache.delete(`db/${collection}.json`);
     return [];
   }
@@ -100,6 +118,18 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
   try {
     const blobName = `db/${collection}.json`;
     const content = JSON.stringify(items, null, 2);
+    
+    console.log(`[writeCollectionBlob] Writing ${items.length} items to ${collection}`);
+    
+    // Log sample data for inventory collection
+    if (collection === 'inventory' && items.length > 0) {
+      console.log(`[writeCollectionBlob] Sample inventory items being written:`, items.slice(0, 3).map((inv: any) => ({
+        id: inv.id,
+        productId: inv.productId,
+        size: inv.size,
+        quantity: inv.quantity
+      })));
+    }
     
     // Try to use allowOverwrite if available (v1.0.0+), otherwise delete old blobs first
     const putOptions: any = {
@@ -114,10 +144,11 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
       putOptions.allowOverwrite = true;
       const { url } = await put(blobName, content, putOptions);
       blobUrlCache.set(blobName, url);
+      console.log(`[writeCollectionBlob] Successfully wrote ${items.length} items to ${collection} using allowOverwrite`);
     } catch (error: any) {
       // If allowOverwrite is not supported (v0.26.0), delete old blobs first
       if (error.message?.includes('allowOverwrite') || error.message?.includes('overwrite')) {
-        console.log('allowOverwrite not supported, using delete-then-create approach');
+        console.log(`[writeCollectionBlob] allowOverwrite not supported, using delete-then-create approach for ${collection}`);
         
         // Delete existing blobs with the same pathname
         try {
@@ -128,6 +159,7 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
             const urlsToDelete = existingBlobs.map(b => b.url);
             await del(urlsToDelete);
             blobUrlCache.delete(blobName);
+            console.log(`[writeCollectionBlob] Deleted ${existingBlobs.length} existing blob(s) for ${collection}`);
           }
         } catch (listError) {
           const cachedUrl = blobUrlCache.get(blobName);
@@ -141,12 +173,13 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
         delete putOptions.allowOverwrite;
         const { url } = await put(blobName, content, putOptions);
         blobUrlCache.set(blobName, url);
+        console.log(`[writeCollectionBlob] Successfully wrote ${items.length} items to ${collection} using delete-then-create`);
       } else {
         throw error;
       }
     }
   } catch (error) {
-    console.error(`Error writing collection ${collection} to Blob:`, error);
+    console.error(`[writeCollectionBlob] Error writing collection ${collection} to Blob:`, error);
     throw error;
   }
 }
@@ -161,9 +194,11 @@ async function readCollection<T>(collection: string): Promise<T[]> {
     // Check cache first
     const cached = cache.get(collection);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log(`[readCollection] Using cached data for ${collection} (${cached.data.length} items)`);
       return cached.data;
     }
     
+    console.log(`[readCollection] Cache miss or expired for ${collection}, reading from Blob Storage`);
     const data = await readCollectionBlob<T>(collection);
     cache.set(collection, { data, timestamp: Date.now() });
     return data;
@@ -187,8 +222,10 @@ async function writeCollection<T>(collection: string, items: T[]): Promise<void>
  * Clear cache for a specific collection (useful for forcing refresh)
  */
 export function clearCache(collection: string): void {
+  console.log(`[clearCache] Clearing cache for ${collection}`);
   cache.delete(collection);
   blobUrlCache.delete(`db/${collection}.json`);
+  console.log(`[clearCache] Cache cleared for ${collection}`);
 }
 
 /**
