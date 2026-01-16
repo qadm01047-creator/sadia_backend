@@ -340,7 +340,7 @@ export async function POST(req: NextRequest) {
 
       if (hasSizes) {
         // Use inventory-based decrease for items with sizes
-        decreaseInventoryOnPayment(createdItems);
+        await decreaseInventoryOnPayment(createdItems);
 
         // Also decrease product stock for compatibility
         for (const validatedItem of validatedItems) {

@@ -1,24 +1,23 @@
-import { getAll, findOne, update, remove, create } from './db';
+import { getAll, findOne, update, remove, create, getAllAsync, findOneAsync, updateAsync } from './db';
 import { Inventory, OrderItem, Product, StockMovement } from '@/types';
 
 /**
- * Decrease inventory quantity when order is paid
+ * Decrease inventory quantity when order is paid (async version for Blob Storage)
  * @param orderItems - Array of order items
  */
-export function decreaseInventoryOnPayment(orderItems: OrderItem[]): void {
-  const inventory = getAll<Inventory>('inventory');
+export async function decreaseInventoryOnPayment(orderItems: OrderItem[]): Promise<void> {
+  const inventory = await getAllAsync<Inventory>('inventory');
 
   for (const orderItem of orderItems) {
     // Find inventory item for this product and size
-    const inventoryItem = findOne<Inventory>(
-      'inventory',
+    const inventoryItem = inventory.find(
       (inv) => inv.productId === orderItem.productId && inv.size === orderItem.size
     );
 
     if (inventoryItem) {
       // Decrease quantity, but don't go below 0
       const newQuantity = Math.max(0, inventoryItem.quantity - orderItem.quantity);
-      update<Inventory>('inventory', inventoryItem.id, {
+      await updateAsync<Inventory>('inventory', inventoryItem.id, {
         quantity: newQuantity,
         updatedAt: new Date().toISOString(),
       });

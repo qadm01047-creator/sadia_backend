@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Decrease inventory since order is immediately PAID
-    decreaseInventoryOnPayment(orderItems);
+    await decreaseInventoryOnPayment(orderItems);
 
     return successResponse({ order, items: orderItems }, 201);
   } catch (error: any) {

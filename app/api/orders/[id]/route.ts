@@ -107,7 +107,7 @@ export async function PUT(
       // Only decrease inventory if order source is not ONLINE (to avoid double decrease)
       // For ONLINE orders, inventory is decreased at creation time
       if (currentOrder.source !== 'ONLINE') {
-        decreaseInventoryOnPayment(orderItems);
+        await decreaseInventoryOnPayment(orderItems);
       }
     }
 

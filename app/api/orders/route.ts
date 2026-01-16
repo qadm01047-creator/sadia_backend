@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
     // This ensures stock is reserved immediately for online orders
     if (source === 'ONLINE') {
       // Decrease inventory by size (if size is specified)
-      decreaseInventoryOnPayment(orderItems);
+      await decreaseInventoryOnPayment(orderItems);
       
       // Also decrease general product stock for compatibility
       for (const item of items) {
