@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 // Use Blob Storage in production, fallback to filesystem in development
 const USE_BLOB = process.env.BLOB_READ_WRITE_TOKEN !== undefined;
@@ -100,11 +100,35 @@ async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<v
   try {
     const blobName = `db/${collection}.json`;
     const content = JSON.stringify(items, null, 2);
+    
+    // Delete existing blobs with the same pathname to prevent duplicates
+    // This is needed for @vercel/blob < 1.0.0 which doesn't support allowOverwrite
+    try {
+      const blobs = await list({ prefix: blobName });
+      const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
+      
+      if (existingBlobs.length > 0) {
+        // Delete all existing blobs with this pathname
+        const urlsToDelete = existingBlobs.map(b => b.url);
+        await del(urlsToDelete);
+        // Clear cache since we're deleting the old blob
+        blobUrlCache.delete(blobName);
+      }
+    } catch (listError) {
+      // If listing fails, try to delete cached URL if available
+      const cachedUrl = blobUrlCache.get(blobName);
+      if (cachedUrl) {
+        await del(cachedUrl);
+        blobUrlCache.delete(blobName);
+      }
+      // Continue with creating new blob even if deletion failed
+    }
+    
+    // Create new blob
     const { url } = await put(blobName, content, {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false, // Keep the same filename
-      allowOverwrite: true, // Overwrite existing blob instead of creating new one
     });
     // Cache the URL for faster reads
     blobUrlCache.set(blobName, url);

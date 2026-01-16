@@ -8,8 +8,10 @@
 
 Исправлена функция `writeCollectionBlob` в `lib/db.ts`:
 
-1. **Добавлена опция `allowOverwrite: true`** - позволяет обновлять существующий blob вместо создания нового
+1. **Удаление старых blobs перед созданием нового** - для версий `@vercel/blob < 1.0.0` (например, 0.26.0), которые не поддерживают `allowOverwrite`, мы сначала удаляем все существующие blobs с таким же pathname, затем создаем новый
 2. **Добавлена опция `addRandomSuffix: false`** - гарантирует, что имя файла остается одинаковым
+
+**Примечание:** Если вы обновите `@vercel/blob` до версии 1.0.0+, можно использовать `allowOverwrite: true` вместо удаления старых blobs.
 
 ## Что изменилось
 
@@ -23,11 +25,29 @@ const { url } = await put(blobName, content, {
 
 ### После:
 ```typescript
+// Delete existing blobs with the same pathname first
+const blobs = await list({ prefix: blobName });
+const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
+if (existingBlobs.length > 0) {
+  await del(existingBlobs.map(b => b.url));
+  blobUrlCache.delete(blobName);
+}
+
+// Create new blob
 const { url } = await put(blobName, content, {
   access: 'public',
   contentType: 'application/json',
   addRandomSuffix: false, // Keep the same filename
-  allowOverwrite: true, // Overwrite existing blob instead of creating new one
+});
+```
+
+**Для версий @vercel/blob >= 1.0.0:**
+```typescript
+const { url } = await put(blobName, content, {
+  access: 'public',
+  contentType: 'application/json',
+  addRandomSuffix: false,
+  allowOverwrite: true, // Available in v1.0.0+
 });
 ```
 
