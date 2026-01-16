@@ -49,40 +49,37 @@ function writeCollectionFS<T>(collection: string, items: T[]): void {
 // Store blob URLs after first write (for faster reads)
 const blobUrlCache: Map<string, string> = new Map();
 
-// Read all items from Blob Storage
+// Read all items from Blob Storage (optimized direct approach)
 async function readCollectionBlob<T>(collection: string): Promise<T[]> {
   try {
     const blobName = `db/${collection}.json`;
     
-    // Try to get URL from cache first
+    // Try to get URL from cache first (fastest path)
     let blobUrl = blobUrlCache.get(blobName);
     
-    // If not in cache, search for it
+    // If not in cache, find it using list (only once per collection)
     if (!blobUrl) {
-      if (DEBUG_MODE) console.log(`[readCollectionBlob] URL not in cache for ${collection}, searching...`);
       const blobs = await list({ prefix: blobName });
-      // Find the most recent blob with exact pathname match
       const matchingBlobs = blobs.blobs
         .filter(b => b.pathname === blobName)
         .sort((a, b) => (b.uploadedAt?.getTime() || 0) - (a.uploadedAt?.getTime() || 0));
       
       if (matchingBlobs.length === 0) {
-        if (DEBUG_MODE) console.log(`[readCollectionBlob] No blobs found for ${collection}`);
         return [];
       }
       
-      // Use the most recent blob (first in sorted array)
-      const matchingBlob = matchingBlobs[0];
-      blobUrl = matchingBlob.url;
+      // Cache the URL for future reads
+      blobUrl = matchingBlobs[0].url;
       blobUrlCache.set(blobName, blobUrl);
-      if (DEBUG_MODE) console.log(`[readCollectionBlob] Found ${matchingBlobs.length} blob(s) for ${collection}, using most recent`);
     }
 
-    // Fetch the blob content
-    const response = await fetch(blobUrl);
+    // Fetch the blob content directly
+    const response = await fetch(blobUrl, { 
+      cache: 'no-store' // Always get fresh data from Blob Storage
+    });
+    
     if (!response.ok) {
       if (response.status === 404) {
-        if (DEBUG_MODE) console.log(`[readCollectionBlob] Blob not found (404), clearing cache for ${collection}`);
         blobUrlCache.delete(blobName);
         return [];
       }
@@ -91,80 +88,75 @@ async function readCollectionBlob<T>(collection: string): Promise<T[]> {
 
     const text = await response.text();
     const items = JSON.parse(text);
-    if (DEBUG_MODE) console.log(`[readCollectionBlob] Loaded ${items.length} items from ${collection}`);
     
     return Array.isArray(items) ? items : [];
   } catch (error: any) {
-    console.error(`[readCollectionBlob] Error reading collection ${collection} from Blob:`, error);
+    console.error(`[readCollectionBlob] Error reading collection ${collection}:`, error.message);
     blobUrlCache.delete(`db/${collection}.json`);
     return [];
   }
 }
 
-// Write all items to Blob Storage
+// Write all items to Blob Storage (optimized direct approach)
 async function writeCollectionBlob<T>(collection: string, items: T[]): Promise<void> {
   try {
     const blobName = `db/${collection}.json`;
     const content = JSON.stringify(items, null, 2);
     
-    if (DEBUG_MODE) console.log(`[writeCollectionBlob] Writing ${items.length} items to ${collection}`);
-    
-    // Try to use allowOverwrite if available (v1.0.0+), otherwise delete old blobs first
+    // Direct write with allowOverwrite (v1.0.0+)
     const putOptions: any = {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
+      allowOverwrite: true, // Direct overwrite for better performance
     };
 
-    // Check if allowOverwrite is available (v1.0.0+)
     try {
-      // Try to use allowOverwrite (available in v1.0.0+)
-      putOptions.allowOverwrite = true;
+      // Try direct write with allowOverwrite
       const { url } = await put(blobName, content, putOptions);
+      // Update cache immediately with new URL
       blobUrlCache.set(blobName, url);
-      if (DEBUG_MODE) console.log(`[writeCollectionBlob] Successfully wrote ${items.length} items to ${collection} using allowOverwrite`);
     } catch (error: any) {
-      // If allowOverwrite is not supported (v0.26.0), delete old blobs first
+      // Fallback: if allowOverwrite fails, delete old blob first
       if (error.message?.includes('allowOverwrite') || error.message?.includes('overwrite')) {
-        if (DEBUG_MODE) console.log(`[writeCollectionBlob] allowOverwrite not supported, using delete-then-create approach for ${collection}`);
-        
-        // Delete existing blobs with the same pathname
-        try {
-          const blobs = await list({ prefix: blobName });
-          const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
-          
-          if (existingBlobs.length > 0) {
-            const urlsToDelete = existingBlobs.map(b => b.url);
-            await del(urlsToDelete);
-            blobUrlCache.delete(blobName);
-            if (DEBUG_MODE) console.log(`[writeCollectionBlob] Deleted ${existingBlobs.length} existing blob(s) for ${collection}`);
-          }
-        } catch (listError) {
-          const cachedUrl = blobUrlCache.get(blobName);
-          if (cachedUrl) {
+        // Delete existing blob if any
+        const cachedUrl = blobUrlCache.get(blobName);
+        if (cachedUrl) {
+          try {
             await del(cachedUrl);
-            blobUrlCache.delete(blobName);
+          } catch (delError) {
+            // Ignore delete errors, continue with write
           }
         }
         
-        // Create new blob without allowOverwrite
+        // Try to find and delete by listing
+        try {
+          const blobs = await list({ prefix: blobName });
+          const existingBlobs = blobs.blobs.filter(b => b.pathname === blobName);
+          if (existingBlobs.length > 0) {
+            await del(existingBlobs.map(b => b.url));
+          }
+        } catch (listError) {
+          // Ignore list errors
+        }
+        
+        // Write without allowOverwrite
         delete putOptions.allowOverwrite;
         const { url } = await put(blobName, content, putOptions);
         blobUrlCache.set(blobName, url);
-        if (DEBUG_MODE) console.log(`[writeCollectionBlob] Successfully wrote ${items.length} items to ${collection} using delete-then-create`);
       } else {
         throw error;
       }
     }
   } catch (error) {
-    console.error(`[writeCollectionBlob] Error writing collection ${collection} to Blob:`, error);
+    console.error(`[writeCollectionBlob] Error writing collection ${collection}:`, error);
     throw error;
   }
 }
 
 // Cache for Blob reads (to avoid reading on every request)
 const cache: Map<string, { data: any; timestamp: number }> = new Map();
-const CACHE_TTL = 30000; // 30 seconds cache for better performance
+const CACHE_TTL = 60000; // 60 seconds cache for better performance (increased from 30s)
 
 // Enable detailed logging only in development
 const DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.DEBUG_DB === 'true';

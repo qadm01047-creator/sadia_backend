@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAllAsync, createAsync, getByIdAsync, updateAsync } from '@/lib/db';
 import { requireAuth, requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
-import { Order, OrderItem, Product, Coupon } from '@/types';
+import { Order, OrderItem, Product, Coupon, Inventory } from '@/types';
 import { sendTelegramNotificationByPhone, notifyAdminsAboutSale } from '@/lib/telegram-notify';
 import { decreaseInventoryOnPayment, atomicDecreaseStock } from '@/lib/inventory-utils';
 
@@ -127,15 +127,38 @@ export async function POST(req: NextRequest) {
       return errorResponse('Items are required', 400);
     }
 
-    // Calculate total
+    // Calculate total and validate inventory
     let total = 0;
     const products = await getAllAsync<Product>('products');
+    const inventory = await getAllAsync<Inventory>('inventory');
 
     for (const item of items) {
       const product = products.find(p => p.id === item.productId);
       if (!product) {
         return errorResponse(`Product ${item.productId} not found`, 400);
       }
+      
+      // Validate inventory quantity if size is specified
+      if (item.size) {
+        const inventoryItem = inventory.find(
+          (inv) => inv.productId === item.productId && inv.size === item.size
+        );
+        
+        if (!inventoryItem) {
+          return errorResponse(
+            `Товар "${product.name}" размера "${item.size}" отсутствует на складе`,
+            400
+          );
+        }
+        
+        if (inventoryItem.quantity < item.quantity) {
+          return errorResponse(
+            `Недостаточно товара на складе. В наличии только ${inventoryItem.quantity} шт. размера "${item.size}" для товара "${product.name}"`,
+            400
+          );
+        }
+      }
+      
       total += product.price * item.quantity;
     }
 
