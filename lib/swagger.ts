@@ -108,15 +108,13 @@ const options: swaggerJsdoc.Options = {
     './app/api/**/*.tsx',
     path.resolve(process.cwd(), 'app/api/**/*.ts'),
     path.resolve(process.cwd(), 'app/api/**/*.tsx'),
-  ], // Path to the API files
+  ],
 };
 
-// Generate swagger spec with error handling
 let swaggerSpec: any;
 try {
   swaggerSpec = swaggerJsdoc(options);
   
-  // Log if no paths were found (for debugging)
   if (!swaggerSpec.paths || Object.keys(swaggerSpec.paths).length === 0) {
     console.warn('Swagger: No API paths found. Check if JSDoc comments are present in API route files.');
   } else {
@@ -124,7 +122,6 @@ try {
   }
 } catch (error) {
   console.error('Swagger generation error:', error);
-  // Return a minimal spec if generation fails
   if (!options.definition) {
     swaggerSpec = {
       openapi: '3.0.0',
@@ -151,4 +148,3 @@ try {
 }
 
 export { swaggerSpec };
-
