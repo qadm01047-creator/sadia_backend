@@ -115,6 +115,7 @@ export async function PUT(
       sku,
       active_for_pos,
       offline_price,
+      images,
     } = data;
 
     const existingProduct = await getByIdAsync<Product>('products', params.id);
@@ -127,8 +128,8 @@ export async function PUT(
     const nextCost = costPrice !== undefined ? costPrice : existingProduct.costPrice;
     const profit = nextCost !== undefined ? nextPrice - nextCost : existingProduct.profit;
 
-    const updatedProduct = await updateAsync<Product>('products', params.id, {
-      ...data,
+    // Prepare update object
+    const updateData: any = {
       slug: productSlug,
       price: nextPrice,
       costPrice: nextCost,
@@ -137,7 +138,20 @@ export async function PUT(
       active_for_pos: active_for_pos ?? existingProduct.active_for_pos ?? false,
       offline_price: offline_price ?? existingProduct.offline_price ?? null,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    // Include images if provided (for reordering)
+    if (images !== undefined && Array.isArray(images)) {
+      updateData.images = images;
+      console.log(`Updating product ${params.id} with ${images.length} images`);
+    }
+
+    // Include other fields if provided
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
+
+    const updatedProduct = await updateAsync<Product>('products', params.id, updateData);
 
     if (!updatedProduct) {
       return errorResponse('Product not found', 404);
