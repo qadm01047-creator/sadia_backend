@@ -3,6 +3,7 @@ import { getAllAsync, createAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Product, Category } from '@/types';
+import { normalizeProducts } from '@/lib/image-urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,8 +131,11 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * limit;
     const paginatedProducts = products.slice(offset, offset + limit);
 
+    // Normalize image URLs to ensure blob storage URLs are used
+    const normalizedProducts = normalizeProducts(paginatedProducts);
+
     return successResponse({
-      data: paginatedProducts,
+      data: normalizedProducts,
       pagination: {
         total,
         page,

@@ -3,6 +3,7 @@ import { getByIdAsync, updateAsync, removeAsync, getAllAsync } from '@/lib/db';
 import { requireAdmin } from '@/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Product, Category, Inventory } from '@/types';
+import { normalizeProduct } from '@/lib/image-urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,12 +82,15 @@ export async function GET(
     // Populate images
     const images = product.images || [];
 
-    return successResponse({
+    // Normalize image URLs to ensure blob storage URLs are used
+    const normalizedProduct = normalizeProduct({
       ...product,
       category,
       inventory: productInventory,
       images: images.sort((a, b) => (a.order || 0) - (b.order || 0)),
     });
+
+    return successResponse(normalizedProduct);
   } catch (error: any) {
     console.error('Get product error:', error);
     return errorResponse(error.message || 'Internal server error', 500);

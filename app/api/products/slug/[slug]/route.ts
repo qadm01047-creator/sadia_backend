@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAllAsync, findOneAsync } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { Product, Category, Inventory } from '@/types';
+import { normalizeProduct } from '@/lib/image-urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,14 +57,15 @@ export async function GET(
     // Get images (if stored separately, otherwise use product.images)
     const images = product.images || [];
 
-    const response = {
+    // Normalize image URLs to ensure blob storage URLs are used
+    const normalizedProduct = normalizeProduct({
       ...product,
       category,
       inventory: productInventory,
       images: images.sort((a, b) => (a.order || 0) - (b.order || 0)),
-    };
+    });
 
-    return successResponse(response);
+    return successResponse(normalizedProduct);
   } catch (error: any) {
     console.error('Get product by slug error:', error);
     console.error('Error stack:', error.stack);
